@@ -1,0 +1,6 @@
+{
+  "name": "中元孝親祈福誦經",
+  "description": "一個寧靜莊嚴的禪風誦經與修持登錄平台，提供經文恭誦、即時功德錄及迴向登錄功能。",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
