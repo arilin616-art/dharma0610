@@ -41,6 +41,7 @@ export default function App() {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [prefilledCount, setPrefilledCount] = useState<number>(0);
+  const [isLocalOnly, setIsLocalOnly] = useState<boolean>(false);
   
   // Dynamic simulator clock
   const [currentTime, setCurrentTime] = useState<string>("13:20");
@@ -69,16 +70,23 @@ export default function App() {
     setIsLoading(true);
     try {
       const response = await fetch("/api/reports");
-      if (!response.ok) {
-        throw new Error("伺服器連線異常");
+      const contentType = response.headers.get("content-type");
+      if (!response.ok || !contentType || !contentType.includes("application/json")) {
+        throw new Error("伺服器回應格式不支援（可能為靜態網頁託管模式）");
       }
       const data = await response.json();
       setReports(data);
+      setIsLocalOnly(false);
     } catch (error) {
-      console.warn("無法取得伺服器回報，改用本地端暫存暫代:", error);
+      console.warn("無法取得伺服器回報，自動改用本地端 (localStorage) 運作：", error);
+      setIsLocalOnly(true);
       const local = localStorage.getItem("zen_chants_reports");
       if (local) {
-        setReports(JSON.parse(local));
+        try {
+          setReports(JSON.parse(local));
+        } catch (e) {
+          setReports([]);
+        }
       } else {
         setReports([]);
       }
@@ -95,6 +103,37 @@ export default function App() {
     dedication: string;
   }) => {
     setIsSubmitting(true);
+
+    const handleLocalSuccess = (report: ChantingReport) => {
+      setReports(prev => [report, ...prev]);
+      setActiveTab("stats"); // Directly move/jump to the "stats" (功德錄) tab
+      setPrefilledCount(0); // Reset prefilled woodblock state
+
+      const existingLocal = localStorage.getItem("zen_chants_reports") || "[]";
+      try {
+        const parsed = JSON.parse(existingLocal);
+        localStorage.setItem("zen_chants_reports", JSON.stringify([report, ...parsed]));
+      } catch (e) {
+        localStorage.setItem("zen_chants_reports", JSON.stringify([report]));
+      }
+    };
+
+    const localReport: ChantingReport = {
+      id: "rep_" + Math.random().toString(36).substring(2, 11) + "_" + Date.now(),
+      userName: formData.userName.trim(),
+      reportDate: formData.reportDate,
+      sutraId: formData.sutraId,
+      counts: formData.counts,
+      dedication: formData.dedication.trim(),
+      createdAt: new Date().toISOString()
+    };
+
+    if (isLocalOnly) {
+      handleLocalSuccess(localReport);
+      setIsSubmitting(false);
+      return;
+    }
+    
     try {
       const response = await fetch("/api/reports", {
         method: "POST",
@@ -104,15 +143,17 @@ export default function App() {
 
       const contentType = response.headers.get("content-type");
       if (!response.ok) {
-        let errorMessage = "傳輸失敗";
         if (contentType && contentType.includes("application/json")) {
           const errJson = await response.json();
-          errorMessage = errJson.error || errorMessage;
+          throw new Error(errJson.error || "傳輸失敗");
         } else {
-          const errText = await response.text();
-          errorMessage = `伺服器錯誤 (${response.status}): ${errText.substring(0, 80)}`;
+          // If server fails or returns HTML (like 405/404 on GitHub Pages), immediately fall back and act locally.
+          console.warn("伺服器不支援 API 寫入，改用本地端暫存儲存。");
+          setIsLocalOnly(true);
+          handleLocalSuccess(localReport);
+          setIsSubmitting(false);
+          return;
         }
-        throw new Error(errorMessage);
       }
 
       if (contentType && contentType.includes("application/json")) {
@@ -131,11 +172,15 @@ export default function App() {
           localStorage.setItem("zen_chants_reports", JSON.stringify([newReport]));
         }
       } else {
-        throw new Error("伺服器未能回傳正確的 JSON 格式功德紀錄。");
+        console.warn("伺服器未能回傳正確的 JSON 格式功德紀錄，自動切換為本地端。");
+        setIsLocalOnly(true);
+        handleLocalSuccess(localReport);
       }
 
     } catch (err: any) {
-      alert("登錄失敗：" + err?.message);
+      console.warn("連線或處理發生異常，自動改用本地端暫存登錄：", err);
+      setIsLocalOnly(true);
+      handleLocalSuccess(localReport);
     } finally {
       setIsSubmitting(false);
     }
@@ -149,21 +194,30 @@ export default function App() {
   };
 
   const handleResetDb = async () => {
+    if (isLocalOnly) {
+      localStorage.removeItem("zen_chants_reports");
+      setReports([]);
+      alert("重設成功！已清空您在本地端的所有修持回報紀錄。");
+      return;
+    }
+
     try {
       const response = await fetch("/api/reports/reset", {
         method: "POST"
       });
       const contentType = response.headers.get("content-type");
       if (!response.ok) {
-        let errorMessage = "重設失敗";
         if (contentType && contentType.includes("application/json")) {
           const errJson = await response.json();
-          errorMessage = errJson.error || errorMessage;
+          throw new Error(errJson.error || "重設失敗");
         } else {
-          const errText = await response.text();
-          errorMessage = `伺服器錯誤 (${response.status}): ${errText.substring(0, 80)}`;
+          console.warn("伺服器重設接口失敗，改清除本地端暫存。");
+          localStorage.removeItem("zen_chants_reports");
+          setReports([]);
+          setIsLocalOnly(true);
+          alert("重設成功！已清空本地端的修持回報紀錄。");
+          return;
         }
-        throw new Error(errorMessage);
       }
       
       if (contentType && contentType.includes("application/json")) {
@@ -172,10 +226,17 @@ export default function App() {
         localStorage.removeItem("zen_chants_reports");
         alert("資料庫重設成功！已清空所有修持回報紀錄。");
       } else {
-        throw new Error("伺服器重新整理時未回傳 JSON 格式。");
+        localStorage.removeItem("zen_chants_reports");
+        setReports([]);
+        setIsLocalOnly(true);
+        alert("資料清空成功！");
       }
     } catch (e: any) {
-      alert("重設失敗: " + e.message);
+      console.warn("伺服器重載發生錯誤，直接重置清空本地端：", e.message);
+      localStorage.removeItem("zen_chants_reports");
+      setReports([]);
+      setIsLocalOnly(true);
+      alert("本地端功德錄已成功清空！");
     }
   };
 
