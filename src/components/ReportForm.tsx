@@ -55,7 +55,7 @@ export default function ReportForm({
     const tzOffset = now.getTimezoneOffset() * 60000;
     return new Date(now.getTime() - tzOffset).toISOString().split("T")[0];
   });
-  const [customCounts, setCustomCounts] = useState<number>(1);
+  const [customCounts, setCustomCounts] = useState<number | "">(1);
   const [dedication, setDedication] = useState<string>(DEDICATION_PRESETS[0].text);
   const [selectedPresetIndex, setSelectedPresetIndex] = useState<number>(0);
 
@@ -78,12 +78,16 @@ export default function ReportForm({
   };
 
   const handleQuickAdd = (value: number) => {
-    setCustomCounts(prev => Math.max(1, prev + value));
+    setCustomCounts(prev => {
+      const base = typeof prev === "number" ? prev : 0;
+      return Math.max(1, base + value);
+    });
   };
 
   const checkAndSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (customCounts <= 0) {
+    const finalCounts = typeof customCounts === "number" ? customCounts : 0;
+    if (finalCounts <= 0) {
       alert("請輸入大於 0 的誦經/念佛遍（聲）數。");
       return;
     }
@@ -92,7 +96,7 @@ export default function ReportForm({
       userName: userName.trim(),
       reportDate,
       sutraId: selectedSutra.id,
-      counts: Math.floor(customCounts),
+      counts: Math.floor(finalCounts),
       dedication: dedication.trim()
     });
 
@@ -162,7 +166,20 @@ export default function ReportForm({
                 min="1"
                 step="1"
                 value={customCounts}
-                onChange={(e) => setCustomCounts(Math.max(1, parseInt(e.target.value) || 1))}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val === "") {
+                    setCustomCounts("");
+                  } else {
+                    const parsed = parseInt(val, 10);
+                    setCustomCounts(isNaN(parsed) ? "" : parsed);
+                  }
+                }}
+                onBlur={() => {
+                  if (customCounts === "" || customCounts <= 0) {
+                    setCustomCounts(1);
+                  }
+                }}
                 required
                 className="w-full bg-stone-50 border border-stone-200 text-stone-850 focus:border-amber-600 text-sm font-bold py-2 px-3 rounded-xl focus:outline-none transition-all outline-none font-serif"
               />

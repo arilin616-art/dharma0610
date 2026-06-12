@@ -130,7 +130,7 @@ export default function App() {
       }
 
     } catch (err: any) {
-      alert("回報失敗（請檢查網路連線）：" + err?.message);
+      alert("登錄失敗：" + err?.message);
     } finally {
       setIsSubmitting(false);
     }
