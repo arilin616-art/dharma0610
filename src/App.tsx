@@ -13,8 +13,6 @@ import {
   Heart, 
   Sparkles, 
   Info,
-  Check,
-  UserCheck,
   Wifi,
   Battery,
   Music,
@@ -46,10 +44,6 @@ export default function App() {
   
   // Dynamic simulator clock
   const [currentTime, setCurrentTime] = useState<string>("13:20");
-
-  // Custom modal congratulations state
-  const [showAuraModal, setShowAuraModal] = useState<boolean>(false);
-  const [latestSubmittedReport, setLatestSubmittedReport] = useState<ChantingReport | null>(null);
 
   // Quote generator
   const [quoteIndex, setQuoteIndex] = useState<number>(0);
@@ -125,8 +119,7 @@ export default function App() {
         const newReport: ChantingReport = await response.json();
         
         setReports(prev => [newReport, ...prev]);
-        setLatestSubmittedReport(newReport);
-        setShowAuraModal(true);
+        setActiveTab("stats"); // Directly move/jump to the "stats" (功德錄) tab
         setPrefilledCount(0); // Reset prefilled woodblock state
 
         // Save a fallback copy to client storage
@@ -299,59 +292,6 @@ export default function App() {
         </div>
 
       </div>
-
-      {/* 🌟 AMAZING EMBEDDED DEDICATION SUCCESS POPUP */}
-      <AnimatePresence>
-        {showAuraModal && latestSubmittedReport && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setShowAuraModal(false)}
-              className="absolute inset-0 bg-stone-950/65 backdrop-blur-sm"
-            />
-
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 15 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 15 }}
-              transition={{ type: "spring", stiffness: 280, damping: 22 }}
-              className="relative bg-white rounded-[28px] border-2 border-amber-600 p-6 max-w-[340px] w-full shadow-2xl text-center z-10 font-serif"
-            >
-              <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-amber-600 to-amber-400 text-white flex items-center justify-center mx-auto shadow-md mb-3 select-none">
-                <Check size={22} strokeWidth={3.5} />
-              </div>
-
-              <h3 className="text-lg font-bold text-stone-900 tracking-wider">修持成果・已登錄</h3>
-              <p className="text-[11px] text-stone-400 mt-1 uppercase tracking-wide">
-                -同修大德 恭敬施禮-
-              </p>
-
-              <div className="my-4 bg-stone-50 border border-stone-200/80 rounded-xl p-3 text-xs text-stone-700 leading-relaxed text-left">
-                <p className="font-semibold text-stone-950 pb-1 border-b border-stone-200/50 mb-1.5 flex justify-between">
-                  <span>恭誦：《{SUTRAS_DATA.find(s => s.id === latestSubmittedReport.sutraId)?.name}》</span>
-                  <span className="text-amber-700">{latestSubmittedReport.counts} 部</span>
-                </p>
-                <p className="italic text-stone-500 leading-relaxed pl-2 border-l border-amber-600/30">
-                  {latestSubmittedReport.dedication}
-                </p>
-              </div>
-
-              <button
-                onClick={() => {
-                  setShowAuraModal(false);
-                  setActiveTab("stats");
-                }}
-                className="w-full bg-stone-900 hover:bg-stone-850 text-amber-50 py-3 rounded-xl text-xs font-bold tracking-widest flex items-center justify-center gap-1 transition cursor-pointer"
-              >
-                <UserCheck size={13} />
-                合掌頂禮 · 前往功德錄
-              </button>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
 
     </div>
   );
