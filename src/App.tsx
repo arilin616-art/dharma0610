@@ -108,25 +108,37 @@ export default function App() {
         body: JSON.stringify(formData)
       });
 
+      const contentType = response.headers.get("content-type");
       if (!response.ok) {
-        const errJson = await response.json();
-        throw new Error(errJson.error || "傳輸失敗");
+        let errorMessage = "傳輸失敗";
+        if (contentType && contentType.includes("application/json")) {
+          const errJson = await response.json();
+          errorMessage = errJson.error || errorMessage;
+        } else {
+          const errText = await response.text();
+          errorMessage = `伺服器錯誤 (${response.status}): ${errText.substring(0, 80)}`;
+        }
+        throw new Error(errorMessage);
       }
 
-      const newReport: ChantingReport = await response.json();
-      
-      setReports(prev => [newReport, ...prev]);
-      setLatestSubmittedReport(newReport);
-      setShowAuraModal(true);
-      setPrefilledCount(0); // Reset prefilled woodblock state
+      if (contentType && contentType.includes("application/json")) {
+        const newReport: ChantingReport = await response.json();
+        
+        setReports(prev => [newReport, ...prev]);
+        setLatestSubmittedReport(newReport);
+        setShowAuraModal(true);
+        setPrefilledCount(0); // Reset prefilled woodblock state
 
-      // Save a fallback copy to client storage
-      const existingLocal = localStorage.getItem("zen_chants_reports") || "[]";
-      try {
-        const parsed = JSON.parse(existingLocal);
-        localStorage.setItem("zen_chants_reports", JSON.stringify([newReport, ...parsed]));
-      } catch (e) {
-        localStorage.setItem("zen_chants_reports", JSON.stringify([newReport]));
+        // Save a fallback copy to client storage
+        const existingLocal = localStorage.getItem("zen_chants_reports") || "[]";
+        try {
+          const parsed = JSON.parse(existingLocal);
+          localStorage.setItem("zen_chants_reports", JSON.stringify([newReport, ...parsed]));
+        } catch (e) {
+          localStorage.setItem("zen_chants_reports", JSON.stringify([newReport]));
+        }
+      } else {
+        throw new Error("伺服器未能回傳正確的 JSON 格式功德紀錄。");
       }
 
     } catch (err: any) {
@@ -148,11 +160,27 @@ export default function App() {
       const response = await fetch("/api/reports/reset", {
         method: "POST"
       });
-      if (!response.ok) throw new Error("重設失敗");
-      const resData = await response.json();
-      setReports(resData.reports);
-      localStorage.removeItem("zen_chants_reports");
-      alert("資料庫重設成功！已清空所有修持回報紀錄。");
+      const contentType = response.headers.get("content-type");
+      if (!response.ok) {
+        let errorMessage = "重設失敗";
+        if (contentType && contentType.includes("application/json")) {
+          const errJson = await response.json();
+          errorMessage = errJson.error || errorMessage;
+        } else {
+          const errText = await response.text();
+          errorMessage = `伺服器錯誤 (${response.status}): ${errText.substring(0, 80)}`;
+        }
+        throw new Error(errorMessage);
+      }
+      
+      if (contentType && contentType.includes("application/json")) {
+        const resData = await response.json();
+        setReports(resData.reports);
+        localStorage.removeItem("zen_chants_reports");
+        alert("資料庫重設成功！已清空所有修持回報紀錄。");
+      } else {
+        throw new Error("伺服器重新整理時未回傳 JSON 格式。");
+      }
     } catch (e: any) {
       alert("重設失敗: " + e.message);
     }
@@ -161,10 +189,10 @@ export default function App() {
   return (
     <div className="min-h-screen bg-stone-900 md:bg-[#1a1714] bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-stone-850 via-[#14120f] to-black text-stone-800 font-sans antialiased flex flex-col items-center justify-center p-0 md:p-4 selection:bg-amber-100/60 selection:text-amber-900 overflow-hidden select-none">
       
-      {/* 🔮 EXACT 9:16 HIGH-FIDELITY APP VIEWPORT CARD (Fluid 100vh on phone, 746px on Desktop) */}
+      {/* 🔮 SPACIOUS COMFORTABLE VIEWPORT CARD (Fluid on mobile, 540px wide & 840px tall on Desktop for easy reading) */}
       <div 
         id="portable-dharma-aspect-frame" 
-        className="w-full max-w-[420px] h-screen md:h-[746px] md:max-h-[746px] bg-stone-50 md:rounded-[24px] border-none md:border md:border-stone-800/10 md:shadow-[0_30px_70px_rgba(0,0,0,0.65)] overflow-hidden flex flex-col relative"
+        className="w-full max-w-[540px] h-screen md:h-[840px] md:max-h-[840px] bg-stone-50 md:rounded-[24px] border-none md:border md:border-stone-800/10 md:shadow-[0_30px_70px_rgba(0,0,0,0.65)] overflow-hidden flex flex-col relative"
       >
         {/* COMPACT APP COMPASSION HEADER */}
         <header className="bg-white px-4 py-2.5 border-b border-stone-200/70 select-none flex-shrink-0 z-15 shadow-sm">

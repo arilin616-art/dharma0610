@@ -87,7 +87,7 @@ export default function SutraReader({
           </div>
 
           {/* Core Text content scrolls inside - generous height so user scrolls less */}
-          <div className="bg-stone-50 border border-stone-150 rounded-xl p-3.5 shadow-inner overflow-y-auto max-h-[480px] text-stone-800 space-y-3.5 scrollbar-thin">
+          <div className="bg-stone-50 border border-stone-150 rounded-xl p-3.5 shadow-inner overflow-y-auto max-h-[580px] text-stone-800 space-y-3.5 scrollbar-thin">
             <div className="text-center text-[10px] tracking-widest text-amber-700 font-bold border-b border-dashed border-stone-200 pb-2 mb-2 select-none">
               禮敬一心 · 至誠念誦
             </div>
