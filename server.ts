@@ -132,19 +132,6 @@ async function startServer() {
     }
   });
 
-  // API 4: Reset reports (Only if needed, for client sandbox testing)
-  app.post("/api/reports/reset", (req, res) => {
-    try {
-      const writeSuccess = writeDb(INITIAL_REPORTS);
-      if (!writeSuccess) {
-        return res.status(500).json({ error: "重新設定資料庫失敗。" });
-      }
-      res.json({ message: "資料庫已重設回預設功德錄內容！", reports: INITIAL_REPORTS });
-    } catch (err) {
-      res.status(500).json({ error: "重置資料庫時出錯。" });
-    }
-  });
-
   // Vite middleware setup for Development
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
