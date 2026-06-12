@@ -34,13 +34,17 @@ const ZEN_QUOTES = [
 ];
 
 const getApiUrl = (endpoint: string): string => {
-  // If we're operating on a statically-hosted platform like GitHub Pages or an external domain,
-  // we proxy API calls directly to the live Cloud Run deployment's shared backend URL so that
-  // everyone's statistics are combined together ("大家一起統計").
-  if (typeof window !== "undefined" && window.location.hostname.includes("github.io")) {
-    return `https://ais-pre-k5plgccmerrlqubs46pdkj-633639778295.asia-east1.run.app${endpoint}`;
+  // If we are developing locally on localhost/127.0.0.1, we use local endpoint.
+  // Otherwise, we leverage the main consolidated production URL:
+  // "https://ais-pre-k5plgccmerrlqubs46pdkj-633639778295.asia-east1.run.app"
+  // to ensure everyone's statistics are combined together ("大家一起統計").
+  if (typeof window !== "undefined") {
+    const hn = window.location.hostname;
+    if (hn === "localhost" || hn === "127.0.0.1") {
+      return endpoint;
+    }
   }
-  return endpoint;
+  return `https://ais-pre-k5plgccmerrlqubs46pdkj-633639778295.asia-east1.run.app${endpoint}`;
 };
 
 export default function App() {
@@ -50,7 +54,6 @@ export default function App() {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [prefilledCount, setPrefilledCount] = useState<number>(0);
-  const [isLocalOnly, setIsLocalOnly] = useState<boolean>(false);
   
   // Dynamic simulator clock
   const [currentTime, setCurrentTime] = useState<string>("13:20");
@@ -85,10 +88,8 @@ export default function App() {
       }
       const data = await response.json();
       setReports(data);
-      setIsLocalOnly(false);
     } catch (error) {
-      console.warn("無法取得伺服器回報，自動改用本地端 (localStorage) 運作：", error);
-      setIsLocalOnly(true);
+      console.warn("無法取得伺服器回報，自動改用本地端 (localStorage) 暫存：", error);
       const local = localStorage.getItem("zen_chants_reports");
       if (local) {
         try {
@@ -135,12 +136,6 @@ export default function App() {
       dedication: formData.dedication.trim(),
       createdAt: new Date().toISOString()
     };
-
-    if (isLocalOnly) {
-      handleLocalSuccess(localReport);
-      setIsSubmitting(false);
-      return;
-    }
     
     try {
       const response = await fetch(getApiUrl("/api/reports"), {
@@ -155,9 +150,8 @@ export default function App() {
           const errJson = await response.json();
           throw new Error(errJson.error || "傳輸失敗");
         } else {
-          // If server fails or returns HTML (like 405/404 on GitHub Pages), immediately fall back and act locally.
-          console.warn("伺服器不支援 API 寫入，改用本地端暫存儲存。");
-          setIsLocalOnly(true);
+          // If server fails or returns HTML, fall back to offline cache representation
+          console.warn("伺服器回應異常，暫存至本地端。");
           handleLocalSuccess(localReport);
           setIsSubmitting(false);
           return;
@@ -179,14 +173,12 @@ export default function App() {
           localStorage.setItem("zen_chants_reports", JSON.stringify([newReport]));
         }
       } else {
-        console.warn("伺服器未能回傳正確的 JSON 格式功德紀錄，自動切換為本地端。");
-        setIsLocalOnly(true);
+        console.warn("伺服器未能回傳正確的 JSON 格式。");
         handleLocalSuccess(localReport);
       }
 
     } catch (err: any) {
-      console.warn("連線或處理發生異常，自動改用本地端暫存登錄：", err);
-      setIsLocalOnly(true);
+      console.warn("連線或處理發生異常，暫存至本地：", err);
       handleLocalSuccess(localReport);
     } finally {
       setIsSubmitting(false);
@@ -215,11 +207,6 @@ export default function App() {
               <div className="text-[8.5px] font-bold text-amber-700 tracking-[0.25em] uppercase flex items-center gap-1">
                 <Sparkles size={8} className="text-amber-600 animate-pulse" />
                 Dharma 共修集氣閣
-                {isLocalOnly && (
-                  <span className="ml-1 bg-stone-100 text-stone-500 font-sans text-[7.5px] tracking-normal px-1 py-0.5 rounded leading-none border border-stone-200/50">
-                    本地端
-                  </span>
-                )}
               </div>
               <h1 className="text-base font-serif font-black text-stone-950 tracking-tight mt-0.5">
                 中元孝親祈福誦經
