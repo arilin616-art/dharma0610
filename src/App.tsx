@@ -22,7 +22,6 @@ import {
 import { SUTRAS_DATA } from "./data/sutras";
 import { ChantingReport, Sutra } from "./types";
 import ReportForm from "./components/ReportForm";
-import StatsDashboard from "./components/StatsDashboard";
 import SutraReader from "./components/SutraReader";
 
 // Zen Inspirational Quotes for Spiritual Encouragement
@@ -37,7 +36,7 @@ const ZEN_QUOTES = [
 export default function App() {
   const [reports, setReports] = useState<ChantingReport[]>([]);
   const [selectedSutra, setSelectedSutra] = useState<Sutra>(SUTRAS_DATA[1]); // Let's default to Bai Xiao Jing!
-  const [activeTab, setActiveTab] = useState<"stats" | "read" | "report">("read");
+  const [activeTab, setActiveTab] = useState<"read" | "report">("read");
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [prefilledCount, setPrefilledCount] = useState<number>(0);
@@ -106,7 +105,6 @@ export default function App() {
 
     const handleLocalSuccess = (report: ChantingReport) => {
       setReports(prev => [report, ...prev]);
-      setActiveTab("stats"); // Directly move/jump to the "stats" (功德錄) tab
       setPrefilledCount(0); // Reset prefilled woodblock state
 
       const existingLocal = localStorage.getItem("zen_chants_reports") || "[]";
@@ -160,7 +158,6 @@ export default function App() {
         const newReport: ChantingReport = await response.json();
         
         setReports(prev => [newReport, ...prev]);
-        setActiveTab("stats"); // Directly move/jump to the "stats" (功德錄) tab
         setPrefilledCount(0); // Reset prefilled woodblock state
 
         // Save a fallback copy to client storage
@@ -281,37 +278,26 @@ export default function App() {
           id="muyu-mobi-top-nav" 
           className="bg-white border-b border-stone-200/80 px-3 py-1 flex justify-around items-center select-none z-30 shadow-[0_2px_8px_rgba(0,0,0,0.02)] flex-shrink-0"
         >
-          {/* T1: Stats */}
-          <button
-            onClick={() => { setActiveTab("stats"); setPrefilledCount(0); }}
-            className={`flex flex-col items-center justify-center gap-0.5 py-1.5 w-18 transition-all duration-150 cursor-pointer ${
-              activeTab === "stats" ? "text-amber-800 scale-105 font-bold" : "text-stone-400 hover:text-stone-600"
-            }`}
-          >
-            <Award size={18} className={activeTab === "stats" ? "text-amber-700 h-5" : "h-5"} />
-            <span className="text-xs font-serif">功德錄</span>
-          </button>
-
           {/* T2: Read */}
           <button
             onClick={() => { setActiveTab("read"); setPrefilledCount(0); }}
-            className={`flex flex-col items-center justify-center gap-0.5 py-1.5 w-22 transition-all duration-150 cursor-pointer ${
+            className={`flex flex-col items-center justify-center gap-0.5 py-1.5 w-1/2 transition-all duration-150 cursor-pointer ${
               activeTab === "read" ? "text-amber-800 scale-105 font-bold" : "text-stone-400 hover:text-stone-600"
             }`}
           >
             <BookOpen size={18} className={activeTab === "read" ? "text-amber-700 h-5" : "h-5"} />
-            <span className="text-xs font-serif">誦經本</span>
+            <span className="text-sm font-serif">誦經本</span>
           </button>
 
           {/* T4: Report */}
           <button
             onClick={() => { setActiveTab("report"); }}
-            className={`flex flex-col items-center justify-center gap-0.5 py-1.5 w-28 transition-all duration-150 cursor-pointer ${
+            className={`flex flex-col items-center justify-center gap-0.5 py-1.5 w-1/2 transition-all duration-150 cursor-pointer ${
               activeTab === "report" ? "text-amber-800 scale-105 font-bold" : "text-stone-400 hover:text-stone-600"
             }`}
           >
             <FileCheck size={18} className={activeTab === "report" ? "text-amber-700 h-5" : "h-5"} />
-            <span className="text-xs font-serif">誦經次數登錄</span>
+            <span className="text-sm font-serif">誦經回報</span>
           </button>
         </nav>
 
@@ -326,14 +312,6 @@ export default function App() {
               transition={{ duration: 0.2, ease: "easeInOut" }}
               className="p-4"
             >
-              {activeTab === "stats" && (
-                <StatsDashboard
-                  reports={reports}
-                  sutras={SUTRAS_DATA}
-                  onResetDb={handleResetDb}
-                />
-              )}
-
               {activeTab === "read" && (
                 <SutraReader
                   sutras={SUTRAS_DATA}
@@ -344,14 +322,63 @@ export default function App() {
               )}
 
               {activeTab === "report" && (
-                <ReportForm
-                  sutras={SUTRAS_DATA}
-                  selectedSutra={selectedSutra}
-                  onSutraChange={setSelectedSutra}
-                  onSubmitReport={handleSubmitReport}
-                  isSubmitting={isSubmitting}
-                  prefilledCount={prefilledCount > 0 ? prefilledCount : undefined}
-                />
+                <div className="space-y-4">
+                  <ReportForm
+                    sutras={SUTRAS_DATA}
+                    selectedSutra={selectedSutra}
+                    onSutraChange={setSelectedSutra}
+                    onSubmitReport={handleSubmitReport}
+                    isSubmitting={isSubmitting}
+                    prefilledCount={prefilledCount > 0 ? prefilledCount : undefined}
+                  />
+
+                  {/* 🌟 經文累計持誦功德一覽 */}
+                  <div className="bg-white rounded-2xl border border-stone-200/70 p-4 shadow-sm font-serif select-none">
+                    <div className="border-b border-stone-150 pb-2 mb-3.5 flex items-center justify-between">
+                      <div>
+                        <div className="text-[9px] font-bold text-amber-700 tracking-[0.2em] mb-0.5">ACCUMULATED STATS / 累計功德</div>
+                        <h3 className="text-sm font-black text-stone-900">各經文累計持誦次數</h3>
+                      </div>
+                      
+                      <button
+                        onClick={handleResetDb}
+                        className="text-[10px] text-stone-400 hover:text-amber-800 transition py-1 px-2 rounded hover:bg-stone-100 cursor-pointer"
+                      >
+                        清除累計
+                      </button>
+                    </div>
+
+                    <div className="space-y-2">
+                      {SUTRAS_DATA.map(s => {
+                        const total = reports
+                          .filter(r => r.sutraId === s.id)
+                          .reduce((sum, curr) => sum + curr.counts, 0);
+
+                        return (
+                          <div 
+                            key={s.id} 
+                            className="flex items-center justify-between bg-stone-50 border border-stone-150 rounded-xl px-3 py-2.5"
+                          >
+                            <div className="flex items-center gap-1.5">
+                              <span className={`text-[8.5px] font-bold px-1.5 py-0.5 rounded ${
+                                s.category === "sutra" ? "bg-amber-100/70 text-amber-900" :
+                                s.category === "mantra" ? "bg-emerald-100/70 text-emerald-950" : "bg-purple-100/70 text-purple-950"
+                              }`}>
+                                {s.category === "sutra" ? "經" : s.category === "mantra" ? "咒" : "佛"}
+                              </span>
+                              <span className="text-xs font-black text-stone-850">{s.name}</span>
+                            </div>
+                            
+                            <div className="text-right">
+                              <span className="font-sans font-black text-sm text-stone-900">{total.toLocaleString()}</span>
+                              <span className="text-[10.5px] text-stone-400 ml-1 font-bold">{s.metricUnit}</span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
               )}
             </motion.div>
           </AnimatePresence>

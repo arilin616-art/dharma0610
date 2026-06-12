@@ -22,25 +22,6 @@ interface ReportFormProps {
   prefilledCount?: number;
 }
 
-const DEDICATION_PRESETS = [
-  {
-    label: "法界普同迴向 (推薦)",
-    text: "願以此功德，莊嚴佛淨土。上報四重恩，下濟三途苦。若有見聞者，悉發菩提心。盡此一報身，同生極樂國。"
-  },
-  {
-    label: "常在菩薩道 (普賢迴向)",
-    text: "願我臨欲命終時，盡除一切諸障礙，面見彼佛阿彌陀，即得往生安樂剎。願以此功德，普及於一切，我等與眾生，皆共成佛道。"
-  },
-  {
-    label: "消災袪病・身體安康",
-    text: "弟子至誠以此修持功德，迴向合家眷屬及一切見聞眾生，祈願蒙藥師如來與觀自在菩薩慈悲庇護，消災延壽，病苦袪除，身心安康，福慧雙修。"
-  },
-  {
-    label: "消業障・解冤釋結",
-    text: "弟子至誠以此修持功德，迴向累生累世冤親債主、法界有情。祈願解冤釋結，消除無始業障，離苦得樂，皈依三寶，同登正覺。"
-  }
-];
-
 export default function ReportForm({
   sutras,
   selectedSutra,
@@ -56,8 +37,6 @@ export default function ReportForm({
     return new Date(now.getTime() - tzOffset).toISOString().split("T")[0];
   });
   const [customCounts, setCustomCounts] = useState<number | "">(1);
-  const [dedication, setDedication] = useState<string>(DEDICATION_PRESETS[0].text);
-  const [selectedPresetIndex, setSelectedPresetIndex] = useState<number>(0);
 
   // Update count preset when sutra or prefilledCount changes
   useEffect(() => {
@@ -67,15 +46,6 @@ export default function ReportForm({
       setCustomCounts(selectedSutra.category === "buddha" ? 100 : 1);
     }
   }, [selectedSutra, prefilledCount]);
-
-  const handlePresetSelect = (index: number) => {
-    setSelectedPresetIndex(index);
-    if (index >= 0 && DEDICATION_PRESETS[index]) {
-      setDedication(DEDICATION_PRESETS[index].text);
-    } else {
-      setDedication("");
-    }
-  };
 
   const handleQuickAdd = (value: number) => {
     setCustomCounts(prev => {
@@ -97,7 +67,7 @@ export default function ReportForm({
       reportDate,
       sutraId: selectedSutra.id,
       counts: Math.floor(finalCounts),
-      dedication: dedication.trim()
+      dedication: ""
     });
 
     // Reset counts based on context
@@ -234,34 +204,6 @@ export default function ReportForm({
               )}
             </div>
           </div>
-        </div>
-
-        {/* Row 4: Dedication preset selection dropdown to save tremendous 9:16 space */}
-        <div>
-          <label className="block text-xs font-bold text-stone-400 mb-1 uppercase tracking-wider">
-            套用經典理想迴向願文：
-          </label>
-          <select
-            value={selectedPresetIndex}
-            onChange={(e) => handlePresetSelect(parseInt(e.target.value))}
-            className="w-full bg-stone-50 border border-stone-200 text-stone-850 text-xs py-2 px-2.5 rounded-xl cursor-pointer outline-none focus:border-amber-600 transition-all font-serif font-semibold mb-2"
-          >
-            {DEDICATION_PRESETS.map((preset, idx) => (
-              <option key={idx} value={idx}>{preset.label}</option>
-            ))}
-            <option value={-1}>=== 自行定義撰寫理想迴向 ===</option>
-          </select>
-
-          <textarea
-            value={dedication}
-            onChange={(e) => {
-              setDedication(e.target.value);
-              setSelectedPresetIndex(-1); // Deselect presets if editing manually
-            }}
-            placeholder="祈求：願以此功德，莊嚴佛淨土..."
-            rows={3}
-            className="w-full bg-stone-50 border border-stone-200 hover:border-stone-400 focus:border-amber-600 text-stone-850 text-xs py-2 px-3 rounded-xl focus:outline-none transition-all leading-normal whitespace-pre-wrap font-serif outline-none"
-          />
         </div>
 
         {/* Action Button */}
