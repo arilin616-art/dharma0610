@@ -255,6 +255,11 @@ export default function App() {
               <div className="text-[8.5px] font-bold text-amber-700 tracking-[0.25em] uppercase flex items-center gap-1">
                 <Sparkles size={8} className="text-amber-600 animate-pulse" />
                 Dharma 共修集氣閣
+                {isLocalOnly && (
+                  <span className="ml-1 bg-stone-100 text-stone-500 font-sans text-[7.5px] tracking-normal px-1 py-0.5 rounded leading-none border border-stone-200/50">
+                    本地端
+                  </span>
+                )}
               </div>
               <h1 className="text-base font-serif font-black text-stone-950 tracking-tight mt-0.5">
                 中元孝親祈福誦經
