@@ -33,6 +33,16 @@ const ZEN_QUOTES = [
   "「一水潤萬物，百川合大海。」蓮友共修結社之修行，能集大眾慈悲願力，共融成就波羅蜜。"
 ];
 
+const getApiUrl = (endpoint: string): string => {
+  // If we're operating on a statically-hosted platform like GitHub Pages or an external domain,
+  // we proxy API calls directly to the live Cloud Run deployment's shared backend URL so that
+  // everyone's statistics are combined together ("大家一起統計").
+  if (typeof window !== "undefined" && window.location.hostname.includes("github.io")) {
+    return `https://ais-pre-k5plgccmerrlqubs46pdkj-633639778295.asia-east1.run.app${endpoint}`;
+  }
+  return endpoint;
+};
+
 export default function App() {
   const [reports, setReports] = useState<ChantingReport[]>([]);
   const [selectedSutra, setSelectedSutra] = useState<Sutra>(SUTRAS_DATA[1]); // Let's default to Bai Xiao Jing!
@@ -68,7 +78,7 @@ export default function App() {
   const fetchReports = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch("/api/reports");
+      const response = await fetch(getApiUrl("/api/reports"));
       const contentType = response.headers.get("content-type");
       if (!response.ok || !contentType || !contentType.includes("application/json")) {
         throw new Error("伺服器回應格式不支援（可能為靜態網頁託管模式）");
@@ -133,7 +143,7 @@ export default function App() {
     }
     
     try {
-      const response = await fetch("/api/reports", {
+      const response = await fetch(getApiUrl("/api/reports"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData)
@@ -188,53 +198,6 @@ export default function App() {
     setSelectedSutra(selectedS);
     setPrefilledCount(count);
     setActiveTab("report");
-  };
-
-  const handleResetDb = async () => {
-    if (isLocalOnly) {
-      localStorage.removeItem("zen_chants_reports");
-      setReports([]);
-      alert("重設成功！已清空您在本地端的所有修持回報紀錄。");
-      return;
-    }
-
-    try {
-      const response = await fetch("/api/reports/reset", {
-        method: "POST"
-      });
-      const contentType = response.headers.get("content-type");
-      if (!response.ok) {
-        if (contentType && contentType.includes("application/json")) {
-          const errJson = await response.json();
-          throw new Error(errJson.error || "重設失敗");
-        } else {
-          console.warn("伺服器重設接口失敗，改清除本地端暫存。");
-          localStorage.removeItem("zen_chants_reports");
-          setReports([]);
-          setIsLocalOnly(true);
-          alert("重設成功！已清空本地端的修持回報紀錄。");
-          return;
-        }
-      }
-      
-      if (contentType && contentType.includes("application/json")) {
-        const resData = await response.json();
-        setReports(resData.reports);
-        localStorage.removeItem("zen_chants_reports");
-        alert("資料庫重設成功！已清空所有修持回報紀錄。");
-      } else {
-        localStorage.removeItem("zen_chants_reports");
-        setReports([]);
-        setIsLocalOnly(true);
-        alert("資料清空成功！");
-      }
-    } catch (e: any) {
-      console.warn("伺服器重載發生錯誤，直接重置清空本地端：", e.message);
-      localStorage.removeItem("zen_chants_reports");
-      setReports([]);
-      setIsLocalOnly(true);
-      alert("本地端功德錄已成功清空！");
-    }
   };
 
   return (
@@ -339,13 +302,6 @@ export default function App() {
                         <div className="text-[9px] font-bold text-amber-700 tracking-[0.2em] mb-0.5">ACCUMULATED STATS / 累計功德</div>
                         <h3 className="text-sm font-black text-stone-900">各經文累計持誦次數</h3>
                       </div>
-                      
-                      <button
-                        onClick={handleResetDb}
-                        className="text-[10px] text-stone-400 hover:text-amber-800 transition py-1 px-2 rounded hover:bg-stone-100 cursor-pointer"
-                      >
-                        清除累計
-                      </button>
                     </div>
 
                     <div className="space-y-2">

@@ -50,6 +50,17 @@ async function startServer() {
   const app = express();
   const PORT = 3000;
 
+  // CORS Configuration to support cross-origin requests from custom static domains like GitHub Pages
+  app.use((req, res, next) => {
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+    if (req.method === "OPTIONS") {
+      return res.sendStatus(200);
+    }
+    next();
+  });
+
   // JSON Body Parser with 5mb limit
   app.use(express.json({ limit: "5mb" }));
 
